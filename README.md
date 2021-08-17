@@ -1,7 +1,9 @@
 # Mymuduo
 一个基于reactor模式的多线程并发服务器模型的简单实现，学习来源于陈硕的muduo，摆脱了boost库的依赖。 
 ### 项目表述
-该项目主要实现了在一个Reactor的模式下的Channel-EventLoop-Epoller的多线程并发服务器  
+该项目主要实现了在一个Reactor的模式下的Channel-EventLoop-Epoller的多线程并发服务器
+采用了一个io线程来进行reactor监控，但是实际上具体的eventloop中已经支持多个reactor监控的可能，  
+![EOZ00LQEDH)T28F2V9HR_LB](https://user-images.githubusercontent.com/86883267/129748228-758a3acc-4817-4314-b9e9-3c97cb4046ab.png)  
 采用了Epolle的LT模式，作为IO复用的模型，在应用层的层面上加入了输入和输出的缓冲区   
 使用了ThreadPool来进行任务的处理，和注册的定时器Timer类，TimerQueue类  
 ### 使用过程
@@ -17,7 +19,7 @@ make
 nc 127.0.0.1 10037
 ```
 就可以开始通信了   
-### 主要结构简介   
+### 主要结构与思路简介   
 1.声明与接口类:IMuduoUser,IChannelCallback,IAcceptorCallback,IRun,Define.h,Declear.h  
 2.时间相关类:Timestamp,Timer,TimerQueue  
 3.条件变量锁相关类:MutexLock,MutexLockGuard,Condition,BlockQueue  
@@ -25,8 +27,10 @@ nc 127.0.0.1 10037
 5.Reactor三剑客类:EventLoop,Channel,Epoll  
 6.接受与连接类、缓冲区类:Acceptor,TcpConnection,Buffer
 7.终端服务器类:TcpServer,EchoServer  
-8.Makefile及Readme  
+8.Makefile及Readme   
+
 ### 一、声明与接口类
+
 ### 二、时间相关类
 时间相关主要有三个类别Timestamp时间戳类，Timer定时器类，TimerQueue定时器队列   
 **1.Timestamp时间戳类:** 
@@ -73,7 +77,9 @@ Reactor模式在本项目的实现主要由三个类来实现
 内核检测活跃的事件并返回，如果是epollin就返回channel调用可读事件的回调函数，如果监测出了epollout说明有可写事件发生  
 例如在LT模式下未发送完写入了应用层的缓冲区，缓冲区可写就会发生写事件，此时eventloop就会返回channel并调用可写函数  
 **2.Channel通道类：**
-
+Channel类是在eventloop中注册的唯一方式，它我们在epoll中使用的是指针，指针指向的就是Channel，Channel中有用户注册的回调函数，  
+例如Accept中的handleread/write或者tcpconnector中的或者timerqueue中的，一个channel中对应了一个fd，可以是通信fd可以是监听fd可以时timerfd  
+Eventloop与channel时一对多的关系。Channel中还有enablereading，enablewriting等函数他们分别让可读可写事件注册在事件循环中。  
 **3.Epoll类：**
 Epoll时内部有epoll相关的函数，其数据成员包括常用的epollfd树根文件描述符，event结构体数组用来接受活跃的事件  
 event数据结构中是用指针来指向挂载在epoll树上的channel，创建Epoll类的时候调用了epoll_create，  
@@ -81,8 +87,19 @@ event数据结构中是用指针来指向挂载在epoll树上的channel，创建
 第二个是poll函数轮询返会内核中活跃的事件，它在Eventloop的loop中调用事件循环开始，poll就不断轮询，到eventloop中进行处理  
 
 三个类别的传入传出过程如下图所示：  
-![5%_7)EBB(4 Y$EDVY46$EJC](https://user-images.githubusercontent.com/86883267/129735960-d008f5ac-3b1f-457c-b4a8-c6b9224216de.png)  
-![$66N04XH7PGF7$)@TWU5{}A](https://user-images.githubusercontent.com/86883267/129735975-e33edb6b-cfe5-4693-87f5-fec0b54af3df.png)
+![5%_7)EBB(4 Y$EDVY46$EJC](https://user-images.githubusercontent.com/86883267/129735960-d008f5ac-3b1f-457c-b4a8-c6b9224216de.png)   
+Channel进行读事件调用enableread方法，在设定事件文EPOLLIN时同时调用自己的update方法，自己的update方法调用eventloop中的update方法，
+事件循环中的update调用了epoller类中的update内部用epoll_ctl来实现这样就是实现了文件的内核自动监听  
+![$66N04XH7PGF7$)@TWU5{}A](https://user-images.githubusercontent.com/86883267/129735975-e33edb6b-cfe5-4693-87f5-fec0b54af3df.png)  
+当loop开始循环时epoll_wait循环检测并返回活跃的channel这时候，活跃的Channel就自动调用handlevent函数，handlevent函数内部自动调用channel所属的  
+handelread和handelwrite函数，例如acceptor中的newconnect，tcpconnect设定的回调函数，timerqueue的回调函数等
 
 ### 六、接受与连接类、缓冲区类
 ### 七、终端服务器类
+### 总类别关系图
+其中白色菱形是一个拥有多个的聚合关系，黑色菱形时集合一对一的拥有关系  
+![类图 (1)](https://user-images.githubusercontent.com/86883267/129744315-064aac79-e8e9-453d-b230-a3d35a7607ca.png)
+
+### 其他拓展
+
+
