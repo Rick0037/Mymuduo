@@ -101,5 +101,20 @@ handelread和handelwrite函数，例如acceptor中的newconnect，tcpconnect设�
 ![类图 (1)](https://user-images.githubusercontent.com/86883267/129744315-064aac79-e8e9-453d-b230-a3d35a7607ca.png)
 
 ### 其他拓展
+由于本项目时在一个reactor中实现的，没有用到多个reactor互相调用的过程，但是我们实现了在同一个线程和在其他线程完成的可能性  
+分别时Eventloop中的queueinloop方法和runinloop方法   
+runinloop是判断调用的该loop是否是当前线程的loop，如果是当前的线程立即执行，如果不是当前线程先加入到queue队列中去  
+相应在eventloop中去处理返回的活跃事件时，我们首先先处理返回回来的handleevent然后还要处理在此线程等待的其他线程的任务，  
+如果在轮询处理其他线程所属任务队列中的会进行判断，如果当前线程正在执行之前callback还会阻塞，等待流程图如下  
+![OV4J8295$X7` `P7KYG51FP](https://user-images.githubusercontent.com/86883267/129757690-12ebaeec-095a-4dfb-a900-1b32ec35e6fc.png)
 
+### 不足和未来的补充
+本项目由许多不足和有待完善之处，  
+1.只是做了简单的回射并还没有实现web服务的过程，可以在handlewrite和handleread更改Tcpconnect处的接口实现分别做成解析http报文，和发送http报文的过程就好了
+2.在有输入输出缓冲区还有没完全的利用上，由于现在还没有发送实体内容，几乎不可能出现内核发送缓冲区已满需要缓存到发送缓冲区的过程LT模式的优势之处还没有完全展现  
+3.定时连接在压力测试时有时会出现文件已满的请况，预计的办法时准备一个空的文件fd在连接数量已满上限的千情况下，利用空的fd来接受连接然后不提供服务马上断开实现完美关闭  
+4.本文虽然实现了One-loop-per-thread的思想，但是最终还是使用了一个人reactor，后期可以加上多个reactor，主reactor接受连接，然后将通信的fd联通channel发送给其他reactor
+其他subreactor也都配有线程池这样就能实现reactor池+线程池模型，完成最优的多线程并发web服务器模型  
 
+虽然没有完全实现上述功能，但是在学习多线程并发服务器设计的过程中，学习了许多设计思想，RAII封装，Threadlocal变量等学习到了很多 感谢！  
+如有建议和意见欢迎联系19s053048@stu.hit.edu.cn邮箱交流
