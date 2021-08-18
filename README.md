@@ -106,9 +106,16 @@ handelread和handelwrite函数，例如acceptor中的newconnect，tcpconnect设�
 如果读写完成了就会关闭通信fd，在调用handleread和handelwrite的时候也会调用用户的回调函数ImoduoUser。TcpConnection类的生命周期与Accpetor和TimerQueue类一样  
 都是channnel与fd注销之后他们也注销  
 下面来看这三个类的时序图   
+![GQT$`V(2UA$TRQ9HVX77}Y9](https://user-images.githubusercontent.com/86883267/129927340-ce479d2f-0389-4a56-8912-c5c13a77eed9.png)  
 
+**3.Buffer缓冲区类：**
+缓冲区对于我们LT模式是必须的，当前主流的多路复用模型中大多数都是采用的LT模式，与ET模式模式相比各有各的好处，ET模式一次性的把消息发完直到到达饥饿状态，这样很大程度  
+上减小了事件注册的次数不会向LT反复注册但是ET模式也有坏处，就是内核至少会询问两边以检查是否真正完成，而LT模式可以不用，明显的减少了调用的次数，但是相应的也应该加入  
+输入与输出的缓冲区，主要是写事件（读的过程基本不会出现缓冲以读满但是我们还没有读的情况），在写事件没有写完时就应该加入的缓冲区当中，直到下次可写时再写入内核，这样就  
+会大大的减小丢包过程，最大程度上减小读写的bug  
 
-### 七、终端服务器类
+### 七、终端服务器类  
+
 ### 总类别关系图
 其中白色菱形是一个拥有多个的聚合关系，黑色菱形时集合一对一的拥有关系  
 ![类图 (1)](https://user-images.githubusercontent.com/86883267/129744315-064aac79-e8e9-453d-b230-a3d35a7607ca.png)  
