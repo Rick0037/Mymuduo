@@ -29,7 +29,11 @@ nc 127.0.0.1 10037
 7.终端服务器类:TcpServer,EchoServer  
 8.Makefile及Readme   
 
-### 一、声明与接口类
+### 一、声明与接口类  
+IMuduoUser：用户注册的回掉函数虚基类，主要是onmessage，onconnect，onwirtecomplete 后续的TcpServer，EchoServer对其有继承  
+IChannelCallback，IAcceptorCallback：主要时handlewrite/read的接口虚基类，再channel执行handelevent时会回调该函数，后面Acceptor，Tcpconnection，TimerQueue对有继承   
+IRun：任务类的总体描述，包括了读任务和写任务，在线程和线程池类中有判断 Thread，Threadpool  
+Define.h,Declear.h: Define.h进行了宏定义 Declear.h使得所有的类可以预先声明  
 
 ### 二、时间相关类
 时间相关主要有三个类别Timestamp时间戳类，Timer定时器类，TimerQueue定时器队列   
@@ -108,13 +112,22 @@ handelread和handelwrite函数，例如acceptor中的newconnect，tcpconnect设�
 下面来看这三个类的时序图   
 ![GQT$`V(2UA$TRQ9HVX77}Y9](https://user-images.githubusercontent.com/86883267/129927340-ce479d2f-0389-4a56-8912-c5c13a77eed9.png)  
 
-**3.Buffer缓冲区类：**
+**3.Buffer缓冲区类：**   
 缓冲区对于我们LT模式是必须的，当前主流的多路复用模型中大多数都是采用的LT模式，与ET模式模式相比各有各的好处，ET模式一次性的把消息发完直到到达饥饿状态，这样很大程度  
 上减小了事件注册的次数不会向LT反复注册但是ET模式也有坏处，就是内核至少会询问两边以检查是否真正完成，而LT模式可以不用，明显的减少了调用的次数，但是相应的也应该加入  
 输入与输出的缓冲区，主要是写事件（读的过程基本不会出现缓冲以读满但是我们还没有读的情况），在写事件没有写完时就应该加入的缓冲区当中，直到下次可写时再写入内核，这样就  
 会大大的减小丢包过程，最大程度上减小读写的bug  
 
-### 七、终端服务器类  
+### 七、终端服务器类   
+**1.TcpServer类：**  
+TcpServer类中就已经极大程度上集成了服务器类和外部的接口，其中数据成员包括了一个Acceptor接收类，  
+多个TcpConnection类，再一个map中储存了id与连接的制作，由于实现onconnect是在server中实现的它还继承了user类，来实现其回调函数，再这里面就是建立显得连接  
+并完成注册将文件描述符上树等   
+
+**2.EchoServer类：**
+EchoServer终端服务器类是我们连接外部的接口，它内部包含有所在的EventLoop有Tcp服务器，还有Threadpool线程池，也继承了user类再最外部，规定通信时和定时器类的回调函数  
+分模块图如图所示  
+![E}DA(W ODEEL72~ SI1_I{7](https://user-images.githubusercontent.com/86883267/129930945-08181987-d648-45d0-b7da-2123fe1a0084.png)  
 
 ### 总类别关系图
 其中白色菱形是一个拥有多个的聚合关系，黑色菱形时集合一对一的拥有关系  
@@ -134,7 +147,8 @@ runinloop是判断调用的该loop是否是当前线程的loop，如果是当前
 2.在有输入输出缓冲区还有没完全的利用上，由于现在还没有发送实体内容，几乎不可能出现内核发送缓冲区已满需要缓存到发送缓冲区的过程LT模式的优势之处还没有完全展现  
 3.定时连接在压力测试时有时会出现文件已满的请况，预计的办法时准备一个空的文件fd在连接数量已满上限的千情况下，利用空的fd来接受连接然后不提供服务马上断开实现完美关闭  
 4.本文虽然实现了One-loop-per-thread的思想，但是最终还是使用了一个人reactor，后期可以加上多个reactor，主reactor接受连接，然后将通信的fd联通channel发送给其他reactor
-其他subreactor也都配有线程池这样就能实现reactor池+线程池模型，完成最优的多线程并发web服务器模型  
+其他subreactor也都配有线程池这样就能实现reactor池+线程池模型，完成最优的多线程并发web服务器模型    
+5.实现压力测试！！！！！
 
 虽然没有完全实现上述功能，但是在学习多线程并发服务器设计的过程中，学习了许多设计思想，RAII封装，Threadlocal变量等学习到了很多 感谢！  
 如有建议和意见欢迎联系19s053048@stu.hit.edu.cn邮箱交流
