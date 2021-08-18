@@ -95,10 +95,23 @@ Channel进行读事件调用enableread方法，在设定事件文EPOLLIN时同�
 handelread和handelwrite函数，例如acceptor中的newconnect，tcpconnect设定的回调函数，timerqueue的回调函数等
 
 ### 六、接受与连接类、缓冲区类
+接受区连接类主要有Acceptor接受类，Tcpconnection连接类，还有之前所描述的TimerQueue类，他们都是由Channel类进行监控并且在返回活跃的事件时由handelevent  
+返回handleread/write进行执行，然后再执行用户注册的回调函数总的来说他们实现了handleread和write接口，针对不同事件的到来做出了不同的响应  
+而缓冲区类则是在应用层的层面上对未写完事件进行缓冲  
+**1.Accpetor类：**   
+接受者类用于接受连接所以首先在内部对ip地址和端口进行绑定，数据的成员一个是用于监听的文件fd与channel还有channel所在的事件循环，还有注册了handelread函数，  
+在新的连接到来时被调用会接收它产生一个新的fd，在tcpserve中去创建一个新的tcpconnect对象，并完成注册我们可以在后续的流程图看到整个的回调过程，Accpetor类主要就是进行接收并建立新的连接  
+**2.TcpConnection类：**
+主要是用来进行通信的类，当由可读事件产生时，就会进行读写操作，由于我们是Lt模式的在读写的过程中可能没有写完，所以我们读写都是针对于缓冲区来进行  
+如果读写完成了就会关闭通信fd，在调用handleread和handelwrite的时候也会调用用户的回调函数ImoduoUser。TcpConnection类的生命周期与Accpetor和TimerQueue类一样  
+都是channnel与fd注销之后他们也注销  
+下面来看这三个类的时序图   
+
+
 ### 七、终端服务器类
 ### 总类别关系图
 其中白色菱形是一个拥有多个的聚合关系，黑色菱形时集合一对一的拥有关系  
-![类图 (1)](https://user-images.githubusercontent.com/86883267/129744315-064aac79-e8e9-453d-b230-a3d35a7607ca.png)
+![类图 (1)](https://user-images.githubusercontent.com/86883267/129744315-064aac79-e8e9-453d-b230-a3d35a7607ca.png)  
 
 ### 其他拓展
 由于本项目时在一个reactor中实现的，没有用到多个reactor互相调用的过程，但是我们实现了在同一个线程和在其他线程完成的可能性  
