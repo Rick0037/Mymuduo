@@ -33,7 +33,7 @@ nc 127.0.0.1 10037
 **IMuduoUser：** 用户注册的回掉函数虚基类，主要是onmessage，onconnect，onwirtecomplete 后续的TcpServer，EchoServer对其有继承  
 **IChannelCallback，IAcceptorCallback：** 主要时handlewrite/read的接口虚基类，再channel执行handelevent时会回调该函数，后面Acceptor，Tcpconnection，TimerQueue对有继承   
 **IRun：** 任务类的总体描述，包括了读任务和写任务，在线程和线程池类中有判断 Thread，Threadpool  
-**Define.h,Declear.h: ** Define.h进行了宏定义 Declear.h使得所有的类可以预先声明  
+**Define.h,Declear.h:** Define.h进行了宏定义 Declear.h使得所有的类可以预先声明  
 
 ### 二、时间相关类
 时间相关主要有三个类别Timestamp时间戳类，Timer定时器类，TimerQueue定时器队列   
