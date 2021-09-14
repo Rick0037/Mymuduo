@@ -25,7 +25,7 @@ nc 127.0.0.1 10037
 3.条件变量锁相关类:MutexLock,MutexLockGuard,Condition,BlockQueue  
 4.任务线程类:Task,Thread,ThreadPool  
 5.Reactor三剑客类:EventLoop,Channel,Epoll  
-6.接受与连接类、缓冲区类:Acceptor,TcpConnection,Buffer
+6.接受与连接类、缓冲区类:Acceptor,TcpConnection,Buffer   
 7.终端服务器类:TcpServer,EchoServer  
 8.Makefile及Readme   
 
